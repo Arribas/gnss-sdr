@@ -35,6 +35,13 @@ All notable changes to GNSS-SDR will be documented in this file.
   **not** applied to the computed PVT solution. In the Galileo E6B-only
   receiver, HAS messages are decoded and reported.
 
+### Improvements in Maintainability:
+
+- The now archived [GPSTk toolkit](https://github.com/SGL-UT/GPSTk), used in
+  some optional tests and applications, has been replaced by the new
+  [GNSSTk](https://github.com/SGL-UT/gnsstk) C++ Library. Compatibility with the
+  former GPSTk toolkit is maintained.
+
 ### Improvements in Portability:
 
 - Improved detection of the BLAS library under macOS / Macports (the `lapack`
@@ -60,6 +67,8 @@ All notable changes to GNSS-SDR will be documented in this file.
   load on the data link and thus allow more bandwidth.
 - Added gain setting and reading for the XTRX board when using the
   `Osmosdr_Signal_Source` implementation of a `SignalSource`.
+- The `Osmosdr_Signal_Source` implementation learned a new parameter `if_bw` to
+  manually set the bandwidth of the bandpass filter on the radio frontend.
 
 See the definitions of concepts and metrics at
 https://gnss-sdr.org/design-forces/
