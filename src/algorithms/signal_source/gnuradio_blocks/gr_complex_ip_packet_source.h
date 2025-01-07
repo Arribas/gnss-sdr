@@ -20,16 +20,24 @@
 #ifndef GNSS_SDR_GR_COMPLEX_IP_PACKET_SOURCE_H
 #define GNSS_SDR_GR_COMPLEX_IP_PACKET_SOURCE_H
 
+#include "concurrent_queue.h"
 #include "gnss_block_interface.h"
-#include <boost/thread.hpp>
 #include <gnuradio/sync_block.h>
 #include <arpa/inet.h>
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <netinet/if_ether.h>
+#include <atomic>
+#include <netinet/ip.h>
+#include <netinet/udp.h>
 #include <pcap.h>
 #include <string>
 #include <sys/ioctl.h>
+#include <thread>
+
+class Gr_Complex_Ip_Packet_Source_Samples
+{
+public:
+    uint8_t buffer[9000];  // MAX IP packet size
+};
+
 
 /** \addtogroup Signal_Source
  * \{ */
@@ -73,30 +81,30 @@ public:
 
 private:
     void demux_samples(const gr_vector_void_star &output_items, int num_samples_readed);
-    void my_pcap_loop_thread(pcap_t *pcap_handle);
-    void pcap_callback(u_char *args, const struct pcap_pkthdr *pkthdr, const u_char *packet);
+    void my_pcap_loop_thread();
     static void static_pcap_callback(u_char *args, const struct pcap_pkthdr *pkthdr, const u_char *packet);
-    /*
-     * Opens the ethernet device using libpcap raw capture mode
-     * If any of these fail, the function returns the error and exits.
-     */
-    bool open();
+    void open_udp_socket();
+    void close_udp_socket();
 
-    boost::thread *d_pcap_thread;
-    // boost::mutex d_mutex;
-    struct sockaddr_in si_me{};
+    std::atomic<bool> d_stop_flag;
+    std::thread d_pcap_thread;
     std::string d_src_device;
     std::string d_origin_address;
+
+    std::mutex d_data_mutex;
+    // using queues of smart pointers to preallocated buffers
+    Concurrent_Queue<std::shared_ptr<Gr_Complex_Ip_Packet_Source_Samples>> d_free_buffers;
+    Concurrent_Queue<std::shared_ptr<Gr_Complex_Ip_Packet_Source_Samples>> d_used_buffers;
+
     pcap_t *descr;  // ethernet pcap device descriptor
-    char *fifo_buff;
-    int fifo_read_ptr;
-    int fifo_write_ptr;
-    int fifo_items;
+    int udp_socket_fd_;
+
     int d_sock_raw;
     int d_udp_port;
     int d_n_baseband_channels;
     int d_wire_sample_type;
     float d_bytes_per_sample;
+    int output_items_per_work_call;
     bool d_IQ_swap;
 };
 
